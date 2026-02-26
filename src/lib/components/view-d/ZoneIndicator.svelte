@@ -31,13 +31,17 @@
 		position: fixed;
 		pointer-events: none;
 		z-index: 9999;
-		border: 2px dashed rgba(60, 130, 240, 0.4);
-		background: rgba(60, 130, 240, 0.04);
-		border-radius: 8px;
-		transition:
-			left 0.15s ease,
-			top 0.15s ease,
-			width 0.15s ease,
-			height 0.15s ease;
+		background: rgba(0, 0, 0, 0.03);
+		border-radius: 0;
+		animation: fade-in 0.2s ease;
+	}
+
+	@keyframes fade-in {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
 	}
 </style>

@@ -108,9 +108,9 @@
 	}
 
 	.center-panel.dragging {
-		opacity: 0.3;
+		opacity: 0;
 		cursor: grabbing;
-		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+		pointer-events: none;
 	}
 
 	.center-panel.resizing {

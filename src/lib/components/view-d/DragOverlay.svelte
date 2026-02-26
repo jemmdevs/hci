@@ -11,19 +11,20 @@
 	);
 
 	let overlaySize = $derived(isOverSidebar ? 64 : 200);
+	let overlayHeight = $derived(isOverSidebar ? 64 : 150);
+	let radius = $derived(isOverSidebar ? 14 : 12);
 
 	let tx = $derived(drag.pointerX - overlaySize / 2);
-	let ty = $derived(drag.pointerY - overlaySize / 2);
-	let radius = $derived(isOverSidebar ? 14 : 12);
+	let ty = $derived(drag.pointerY - overlayHeight / 2);
 </script>
 
 {#if drag.active && image}
 	<div
 		class="drag-overlay"
 		style="
-			transform: translate({tx}px, {ty}px);
+			transform: translate({tx}px, {ty}px) scale(1.05);
 			width: {overlaySize}px;
-			height: {isOverSidebar ? overlaySize : overlaySize * 0.75}px;
+			height: {overlayHeight}px;
 			border-radius: {radius}px;
 		"
 	>
@@ -40,12 +41,11 @@
 		pointer-events: none;
 		z-index: 10000;
 		overflow: hidden;
-		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
-		opacity: 0.9;
+		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
 		transition:
-			width 0.2s ease,
-			height 0.2s ease,
-			border-radius 0.2s ease;
+			width 0.25s cubic-bezier(0.2, 0, 0, 1),
+			height 0.25s cubic-bezier(0.2, 0, 0, 1),
+			border-radius 0.25s cubic-bezier(0.2, 0, 0, 1);
 	}
 
 	.drag-overlay img {

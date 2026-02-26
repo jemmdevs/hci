@@ -42,8 +42,9 @@
 	}
 
 	.app-icon.dragging {
-		opacity: 0.3;
+		opacity: 0;
 		cursor: grabbing;
+		pointer-events: none;
 	}
 
 	.app-icon img {
