@@ -7,10 +7,11 @@ export interface DraggableOptions {
 	imageId: string;
 	enabled?: boolean;
 	onclick?: () => void;
+	onpointerdown?: () => void;
 }
 
 export function draggable(node: HTMLElement, options: DraggableOptions) {
-	let { store, imageId, enabled = true, onclick } = options;
+	let { store, imageId, enabled = true, onclick, onpointerdown } = options;
 
 	let startX = 0;
 	let startY = 0;
@@ -21,6 +22,8 @@ export function draggable(node: HTMLElement, options: DraggableOptions) {
 		if (!enabled || e.button !== 0 || active) return;
 		e.preventDefault();
 		e.stopPropagation();
+
+		onpointerdown?.();
 
 		startX = e.clientX;
 		startY = e.clientY;
@@ -72,6 +75,7 @@ export function draggable(node: HTMLElement, options: DraggableOptions) {
 			imageId = newOptions.imageId;
 			enabled = newOptions.enabled ?? true;
 			onclick = newOptions.onclick;
+			onpointerdown = newOptions.onpointerdown;
 		},
 		destroy() {
 			node.removeEventListener('pointerdown', onPointerDown);

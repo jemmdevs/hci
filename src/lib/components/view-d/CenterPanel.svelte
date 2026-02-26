@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { ImageItem } from '$lib/types/image.js';
 	import type { ImageStore } from '$lib/stores/image-store.svelte.js';
+	import type { TransitionConfig } from 'svelte/transition';
 	import { draggable } from '$lib/actions/draggable.js';
-	import { scale } from 'svelte/transition';
 
 	const MIN_WIDTH = 180;
 	const MIN_HEIGHT = 140;
@@ -28,6 +28,27 @@
 
 	function onPointerDownCapture() {
 		store.bringToFront(image.id);
+	}
+
+	function panelIn(_node: Element): TransitionConfig {
+		return {
+			duration: 400,
+			css: (t) => {
+				// Pure scale from 0, ease-out cubic — like opening an app on iOS
+				const ease = 1 - Math.pow(1 - t, 3);
+				return `transform: translate(${visualX}px, ${visualY}px) scale(${ease})`;
+			}
+		};
+	}
+
+	function panelOut(_node: Element): TransitionConfig {
+		return {
+			duration: 200,
+			css: (t) => {
+				const ease = Math.pow(t, 2);
+				return `transform: translate(${visualX}px, ${visualY}px) scale(${ease})`;
+			}
+		};
 	}
 
 	// Resize logic
@@ -75,9 +96,9 @@
 	class:dragging={isDragged}
 	class:resizing
 	style="transform: translate({visualX}px, {visualY}px); width: {pos.width}px; height: {pos.height}px; z-index: {pos.zIndex};"
-	use:draggable={{ store, imageId: image.id, enabled: !resizing }}
-	onpointerdown={onPointerDownCapture}
-	transition:scale={{ duration: 200, start: 0.85 }}
+	use:draggable={{ store, imageId: image.id, enabled: !resizing, onpointerdown: onPointerDownCapture }}
+	in:panelIn
+	out:panelOut
 >
 	<img src={image.src} alt={image.alt} draggable="false" />
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
