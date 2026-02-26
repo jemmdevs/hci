@@ -1,4 +1,4 @@
-import type { ImageItem, ZoneId, CenterPosition } from '../types/image.js';
+import type { ImageItem, ZoneId, CenterPosition, CenterMode } from '../types/image.js';
 import type { DragState } from '../types/drag.js';
 import type { Rect } from '../utils/geometry.js';
 import type { ZoneRects } from '../utils/zone-detection.js';
@@ -13,6 +13,9 @@ export class ImageStore {
 	dragState: DragState = $state({ ...defaultDragState });
 	centerRect: Rect | null = $state(null);
 	zoneRects: ZoneRects | null = $state(null);
+	centerMode: CenterMode = $state('focus');
+	focusedImageId: string | null = $state(null);
+	exposeActive: boolean = $state(false);
 
 	private nextZIndex = 1;
 
@@ -48,6 +51,51 @@ export class ImageStore {
 		return this.images.find((img) => img.id === this.dragState.imageId) ?? null;
 	});
 
+	focusedImage = $derived.by(() => {
+		if (!this.focusedImageId) return null;
+		return this.images.find((img) => img.id === this.focusedImageId && img.zone === 'center') ?? null;
+	});
+
+	setCenterMode(mode: CenterMode) {
+		if (mode === this.centerMode) return;
+
+		if (mode === 'focus') {
+			// Pick the topmost z-index panel as focused
+			const topImage = this.centerImages.at(-1);
+			this.focusedImageId = topImage?.id ?? null;
+			this.exposeActive = false;
+		}
+
+		this.centerMode = mode;
+	}
+
+	setFocusedImage(id: string | null) {
+		this.focusedImageId = id;
+		this.exposeActive = false;
+	}
+
+	openExpose() {
+		if (this.centerMode !== 'focus' || this.centerImages.length < 2) return;
+		this.exposeActive = true;
+	}
+
+	closeExpose() {
+		this.exposeActive = false;
+	}
+
+	closeFromExpose(id: string) {
+		this.moveToZone(id, 'right-sidebar');
+		// If that was the focused image, pick another or clear
+		if (this.focusedImageId === id) {
+			const remaining = this.centerImages;
+			this.focusedImageId = remaining.length > 0 ? remaining.at(-1)!.id : null;
+		}
+		// If no center images left, close exposé
+		if (this.centerImages.length === 0) {
+			this.exposeActive = false;
+		}
+	}
+
 	moveToZone(imageId: string, targetZone: ZoneId, centerX?: number, centerY?: number) {
 		const idx = this.images.findIndex((img) => img.id === imageId);
 		if (idx === -1) return;
@@ -70,6 +118,11 @@ export class ImageStore {
 					zIndex: this.nextZIndex++
 				}
 			};
+
+			if (this.centerMode === 'focus') {
+				this.focusedImageId = imageId;
+				this.exposeActive = false;
+			}
 		} else {
 			const sidebarImages = this.images.filter(
 				(img) => img.zone === targetZone && img.id !== imageId

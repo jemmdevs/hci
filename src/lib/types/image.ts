@@ -1,5 +1,7 @@
 export type ZoneId = 'left-sidebar' | 'right-sidebar' | 'center';
 
+export type CenterMode = 'focus' | 'free';
+
 export interface CenterPosition {
 	x: number;
 	y: number;

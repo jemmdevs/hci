@@ -41,8 +41,12 @@
 		store.clampCenterPanels();
 	}}
 	onkeydown={(e) => {
-		if (e.key === 'Escape' && store.dragState.active) {
-			store.cancelDrag();
+		if (e.key === 'Escape') {
+			if (store.exposeActive) {
+				store.closeExpose();
+			} else if (store.dragState.active) {
+				store.cancelDrag();
+			}
 		}
 	}}
 />
