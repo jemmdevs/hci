@@ -1,0 +1,151 @@
+<script lang="ts">
+	import type { ImageItem } from '$lib/types/image.js';
+	import type { ImageStore } from '$lib/stores/image-store.svelte.js';
+	import { draggable } from '$lib/actions/draggable.js';
+	import { scale } from 'svelte/transition';
+
+	const MIN_WIDTH = 180;
+	const MIN_HEIGHT = 140;
+
+	let { image, store }: { image: ImageItem; store: ImageStore } = $props();
+
+	let pos = $derived(image.centerPosition!);
+	let isDragged = $derived(store.dragState.active && store.dragState.imageId === image.id);
+
+	let visualX = $derived.by(() => {
+		if (isDragged && store.centerRect) {
+			return store.dragState.pointerX - store.dragState.offsetX - store.centerRect.x;
+		}
+		return pos.x;
+	});
+
+	let visualY = $derived.by(() => {
+		if (isDragged && store.centerRect) {
+			return store.dragState.pointerY - store.dragState.offsetY - store.centerRect.y;
+		}
+		return pos.y;
+	});
+
+	function onPointerDownCapture() {
+		store.bringToFront(image.id);
+	}
+
+	// Resize logic
+	let resizing = $state(false);
+	let resizeStartX = 0;
+	let resizeStartY = 0;
+	let resizeStartW = 0;
+	let resizeStartH = 0;
+
+	function onResizePointerDown(e: PointerEvent) {
+		e.stopPropagation();
+		e.preventDefault();
+		resizing = true;
+		resizeStartX = e.clientX;
+		resizeStartY = e.clientY;
+		resizeStartW = pos.width;
+		resizeStartH = pos.height;
+		store.bringToFront(image.id);
+
+		window.addEventListener('pointermove', onResizePointerMove);
+		window.addEventListener('pointerup', onResizePointerUp);
+	}
+
+	function onResizePointerMove(e: PointerEvent) {
+		if (!resizing) return;
+		e.preventDefault();
+		const dx = e.clientX - resizeStartX;
+		const dy = e.clientY - resizeStartY;
+		const newW = Math.max(MIN_WIDTH, resizeStartW + dx);
+		const newH = Math.max(MIN_HEIGHT, resizeStartH + dy);
+		store.updateCenterPosition(image.id, { width: newW, height: newH });
+	}
+
+	function onResizePointerUp() {
+		if (!resizing) return;
+		resizing = false;
+		window.removeEventListener('pointermove', onResizePointerMove);
+		window.removeEventListener('pointerup', onResizePointerUp);
+	}
+</script>
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div
+	class="center-panel"
+	class:dragging={isDragged}
+	class:resizing
+	style="transform: translate({visualX}px, {visualY}px); width: {pos.width}px; height: {pos.height}px; z-index: {pos.zIndex};"
+	use:draggable={{ store, imageId: image.id, enabled: !resizing }}
+	onpointerdown={onPointerDownCapture}
+	transition:scale={{ duration: 200, start: 0.85 }}
+>
+	<img src={image.src} alt={image.alt} draggable="false" />
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="resize-handle" onpointerdown={onResizePointerDown}></div>
+</div>
+
+<style>
+	.center-panel {
+		position: absolute;
+		top: 0;
+		left: 0;
+		will-change: transform;
+		border-radius: 12px;
+		overflow: hidden;
+		background: #ffffff;
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+		cursor: grab;
+		user-select: none;
+		touch-action: none;
+		display: flex;
+		flex-direction: column;
+		transition: box-shadow 0.2s ease;
+	}
+
+	.center-panel:hover {
+		box-shadow: 0 6px 28px rgba(0, 0, 0, 0.16);
+	}
+
+	.center-panel.dragging {
+		opacity: 0.3;
+		cursor: grabbing;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+	}
+
+	.center-panel.resizing {
+		transition: none;
+	}
+
+	.center-panel img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		pointer-events: none;
+	}
+
+	.resize-handle {
+		position: absolute;
+		bottom: 0;
+		right: 0;
+		width: 16px;
+		height: 16px;
+		cursor: nwse-resize;
+		touch-action: none;
+	}
+
+	.resize-handle::after {
+		content: '';
+		position: absolute;
+		bottom: 3px;
+		right: 3px;
+		width: 8px;
+		height: 8px;
+		border-right: 2px solid rgba(0, 0, 0, 0.15);
+		border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+	}
+
+	.center-panel:hover .resize-handle::after {
+		border-color: rgba(0, 0, 0, 0.3);
+	}
+</style>
