@@ -41,7 +41,9 @@
 		pointer-events: none;
 		z-index: 10000;
 		overflow: hidden;
-		box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.08);
+		box-shadow:
+			0 12px 40px rgba(0, 0, 0, 0.18),
+			0 2px 8px rgba(0, 0, 0, 0.08);
 		transition:
 			width 0.25s cubic-bezier(0.2, 0, 0, 1),
 			height 0.25s cubic-bezier(0.2, 0, 0, 1),
