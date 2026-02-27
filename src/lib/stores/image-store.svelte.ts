@@ -75,7 +75,7 @@ export class ImageStore {
 	}
 
 	openExpose() {
-		if (this.centerMode !== 'focus' || this.centerImages.length < 2) return;
+		if (this.centerMode !== 'focus' || this.centerImages.length === 0) return;
 		this.exposeActive = true;
 	}
 
@@ -133,6 +133,16 @@ export class ImageStore {
 				sidebarIndex: sidebarImages.length,
 				centerPosition: null
 			};
+
+			// If we moved the focused image out of center, pick another
+			if (this.focusedImageId === imageId) {
+				const remaining = this.centerImages;
+				this.focusedImageId = remaining.length > 0 ? remaining.at(-1)!.id : null;
+			}
+			// Close expose if no center images left
+			if (this.exposeActive && this.centerImages.length === 0) {
+				this.exposeActive = false;
+			}
 		}
 
 		this.reindexSidebar(image.zone);
@@ -232,6 +242,11 @@ export class ImageStore {
 			}
 		} else if (hoveredZone && hoveredZone !== sourceZone) {
 			this.moveToZone(imageId, hoveredZone);
+		} else if (
+			hoveredZone === 'left-sidebar' || hoveredZone === 'right-sidebar'
+		) {
+			const targetIndex = this.getSidebarTargetIndex(hoveredZone, pointerY);
+			this.reorderInSidebar(imageId, hoveredZone, targetIndex);
 		}
 
 		this.cancelDrag();
@@ -270,5 +285,42 @@ export class ImageStore {
 				this.images[i] = { ...this.images[i], sidebarIndex: index++ };
 			}
 		}
+	}
+
+	reorderInSidebar(imageId: string, zone: 'left-sidebar' | 'right-sidebar', targetIndex: number) {
+		const sorted = (zone === 'left-sidebar' ? this.leftSidebarImages : this.rightSidebarImages).slice();
+		const currentIndex = sorted.findIndex((img) => img.id === imageId);
+		if (currentIndex === -1 || currentIndex === targetIndex) return;
+
+		const [moved] = sorted.splice(currentIndex, 1);
+		sorted.splice(targetIndex, 0, moved);
+
+		for (let i = 0; i < sorted.length; i++) {
+			const idx = this.images.findIndex((img) => img.id === sorted[i].id);
+			if (idx !== -1) {
+				this.images[idx] = { ...this.images[idx], sidebarIndex: i };
+			}
+		}
+	}
+
+	getSidebarTargetIndex(zone: 'left-sidebar' | 'right-sidebar', pointerY: number): number {
+		if (!this.zoneRects) return 0;
+		const rect = this.zoneRects[zone];
+		const sidebarImages = zone === 'left-sidebar' ? this.leftSidebarImages : this.rightSidebarImages;
+		const count = sidebarImages.length;
+		if (count === 0) return 0;
+
+		const relY = pointerY - rect.y;
+		let closest = 0;
+		let closestDist = Infinity;
+		for (let i = 0; i < count; i++) {
+			const itemCenterY = ((i + 1) / (count + 1)) * rect.height;
+			const dist = Math.abs(relY - itemCenterY);
+			if (dist < closestDist) {
+				closestDist = dist;
+				closest = i;
+			}
+		}
+		return closest;
 	}
 }

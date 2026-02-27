@@ -18,7 +18,7 @@
 	function onWheel(e: WheelEvent) {
 		if (store.centerMode !== 'focus') return;
 		if (store.exposeActive) return;
-		if (centerImages.length < 2) return;
+		if (centerImages.length === 0) return;
 
 		wheelAccum += Math.abs(e.deltaY);
 

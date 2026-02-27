@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ImageStore } from '$lib/stores/image-store.svelte.js';
 	import type { TransitionConfig } from 'svelte/transition';
+	import { draggable } from '$lib/actions/draggable.js';
 
 	let { store }: { store: ImageStore } = $props();
 
@@ -34,10 +35,6 @@
 		};
 	}
 
-	function onThumbnailClick(id: string) {
-		store.setFocusedImage(id);
-	}
-
 	function onCloseClick(e: MouseEvent, id: string) {
 		e.stopPropagation();
 		store.closeFromExpose(id);
@@ -48,6 +45,10 @@
 			store.closeExpose();
 		}
 	}
+
+	function isDragged(id: string): boolean {
+		return store.dragState.active && store.dragState.imageId === id;
+	}
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -55,12 +56,11 @@
 <div class="expose-backdrop" onclick={onBackdropClick}>
 	<div class="expose-grid" style="--cols: {gridCols}">
 		{#each centerImages as image, index (image.id)}
-			<!-- svelte-ignore a11y_click_events_have_key_events -->
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class="thumbnail"
 				class:focused={image.id === store.focusedImageId}
-				onclick={() => onThumbnailClick(image.id)}
+				class:dragging={isDragged(image.id)}
+				use:draggable={{ store, imageId: image.id, onclick: () => store.setFocusedImage(image.id) }}
 				in:thumbnailIn={{ index }}
 				out:thumbnailOut
 			>
@@ -81,7 +81,7 @@
 	.expose-backdrop {
 		position: absolute;
 		inset: 0;
-		background: rgba(245, 245, 245, 0.95);
+		background: #f5f5f5;
 		z-index: 100;
 		display: flex;
 		align-items: center;
@@ -111,6 +111,11 @@
 	.thumbnail:hover {
 		transform: scale(1.04);
 		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.14);
+	}
+
+	.thumbnail.dragging {
+		opacity: 0;
+		pointer-events: none;
 	}
 
 	.thumbnail.focused {

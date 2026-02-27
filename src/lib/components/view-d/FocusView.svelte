@@ -1,56 +1,83 @@
 <script lang="ts">
 	import type { ImageStore } from '$lib/stores/image-store.svelte.js';
 	import type { TransitionConfig } from 'svelte/transition';
+	import { draggable } from '$lib/actions/draggable.js';
 
 	let { store }: { store: ImageStore } = $props();
 
 	let focusedImage = $derived(store.focusedImage);
+	let isDragged = $derived(
+		focusedImage && store.dragState.active && store.dragState.imageId === focusedImage.id
+	);
 
 	function focusIn(_node: Element): TransitionConfig {
 		return {
-			duration: 400,
+			duration: 500,
 			css: (t) => {
-				const ease = 1 - Math.pow(1 - t, 3);
-				const scale = 0.85 + 0.15 * ease;
-				return `transform: scale(${scale})`;
+				const ease = 1 - Math.pow(1 - t, 4);
+				const scale = 0.5 + 0.5 * ease;
+				return `transform: scale(${scale}); opacity: ${ease}`;
 			}
 		};
 	}
 
 	function focusOut(_node: Element): TransitionConfig {
 		return {
-			duration: 200,
+			duration: 300,
 			css: (t) => {
-				const ease = Math.pow(t, 2);
-				const scale = 0.85 + 0.15 * ease;
-				return `transform: scale(${scale})`;
+				const ease = Math.pow(t, 3);
+				const scale = 0.5 + 0.5 * ease;
+				return `transform: scale(${scale}); opacity: ${ease}`;
 			}
 		};
 	}
 </script>
 
 {#if focusedImage}
-	{#key store.focusedImageId}
-		<div class="focus-view" in:focusIn out:focusOut>
-			<img src={focusedImage.src} alt={focusedImage.alt} draggable="false" />
-		</div>
-	{/key}
+	<div
+		class="focus-view"
+		class:dragging={isDragged}
+		in:focusIn
+		out:focusOut
+		use:draggable={{ store, imageId: focusedImage.id }}
+	>
+		<img src={focusedImage.src} alt={focusedImage.alt} draggable="false" />
+	</div>
 {/if}
 
 <style>
 	.focus-view {
 		position: absolute;
-		inset: 0;
+		inset: 40px;
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		overflow: hidden;
+		cursor: grab;
+		user-select: none;
+		touch-action: none;
+		transition:
+			transform 0.35s cubic-bezier(0.2, 0, 0, 1),
+			opacity 0.35s cubic-bezier(0.2, 0, 0, 1);
 	}
 
+	.focus-view:active {
+		transform: scale(0.97);
+	}
+
+	.focus-view.dragging {
+		opacity: 0;
+		transform: scale(0.9);
+		cursor: grabbing;
+		pointer-events: none;
+	}
+
+
 	.focus-view img {
-		width: 100%;
-		height: 100%;
+		max-width: 100%;
+		max-height: 100%;
 		object-fit: contain;
 		pointer-events: none;
+		border-radius: 12px;
+		box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1), 0 1px 8px rgba(0, 0, 0, 0.06);
 	}
 </style>
