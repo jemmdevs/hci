@@ -90,8 +90,8 @@ export class ImageStore {
 			const remaining = this.centerImages;
 			this.focusedImageId = remaining.length > 0 ? remaining.at(-1)!.id : null;
 		}
-		// If no center images left, close exposé
-		if (this.centerImages.length === 0) {
+		// Close expose if 1 or fewer images remain
+		if (this.centerImages.length <= 1) {
 			this.exposeActive = false;
 		}
 	}
@@ -139,8 +139,8 @@ export class ImageStore {
 				const remaining = this.centerImages;
 				this.focusedImageId = remaining.length > 0 ? remaining.at(-1)!.id : null;
 			}
-			// Close expose if no center images left
-			if (this.exposeActive && this.centerImages.length === 0) {
+			// Close expose if 1 or fewer center images remain
+			if (this.exposeActive && this.centerImages.length <= 1) {
 				this.exposeActive = false;
 			}
 		}
