@@ -20,6 +20,9 @@ export function draggable(node: HTMLElement, options: DraggableOptions) {
 
 	function onPointerDown(e: PointerEvent) {
 		if (!enabled || e.button !== 0 || active) return;
+		// Ignore clicks on interactive children (buttons, links)
+		const target = e.target as HTMLElement;
+		if (target.closest('button, a, [data-no-drag]')) return;
 		e.preventDefault();
 		e.stopPropagation();
 
