@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ImageStore } from '$lib/stores/image-store.svelte.js';
 	import type { TransitionConfig } from 'svelte/transition';
+	import { flip } from 'svelte/animate';
 	import { draggable } from '$lib/actions/draggable.js';
 
 	let { store }: { store: ImageStore } = $props();
@@ -14,23 +15,51 @@
 		return 3;
 	});
 
-	function thumbnailIn(_node: Element, { index }: { index: number }): TransitionConfig {
+	function exposeIn(_node: Element): TransitionConfig {
 		return {
-			duration: 300,
-			delay: index * 50,
+			duration: 350,
 			css: (t) => {
 				const ease = 1 - Math.pow(1 - t, 3);
-				return `transform: scale(${ease})`;
+				return `opacity: ${ease}`;
 			}
 		};
 	}
 
+	function exposeOut(_node: Element): TransitionConfig {
+		return {
+			duration: 250,
+			css: (t) => `opacity: ${t}`
+		};
+	}
+
+	function gridIn(_node: Element): TransitionConfig {
+		return {
+			duration: 400,
+			css: (t) => {
+				const ease = 1 - Math.pow(1 - t, 3);
+				const scale = 0.97 + 0.03 * ease;
+				return `transform: scale(${scale})`;
+			}
+		};
+	}
+
+	function gridOut(_node: Element): TransitionConfig {
+		return {
+			duration: 200,
+			css: (t) => {
+				const scale = 0.97 + 0.03 * t;
+				return `transform: scale(${scale})`;
+			}
+		};
+	}
+
+	// Individual thumbnail transitions (only used when removing a single item, not on initial appear)
 	function thumbnailOut(_node: Element): TransitionConfig {
 		return {
-			duration: 150,
+			duration: 200,
 			css: (t) => {
 				const ease = Math.pow(t, 2);
-				return `transform: scale(${ease})`;
+				return `transform: scale(${ease}); opacity: ${ease}`;
 			}
 		};
 	}
@@ -53,25 +82,26 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="expose-backdrop" onclick={onBackdropClick}>
-	<div class="expose-grid" style="--cols: {gridCols}">
-		{#each centerImages as image, index (image.id)}
-			<div
-				class="thumbnail"
-				class:focused={image.id === store.focusedImageId}
-				class:dragging={isDragged(image.id)}
-				use:draggable={{ store, imageId: image.id, onclick: () => store.setFocusedImage(image.id) }}
-				in:thumbnailIn={{ index }}
-				out:thumbnailOut
-			>
-				<img src={image.src} alt={image.alt} draggable="false" />
-				<button
-					class="close-btn"
-					onclick={(e) => onCloseClick(e, image.id)}
-					aria-label="Remove from center"
+<div class="expose-backdrop" in:exposeIn out:exposeOut onclick={onBackdropClick}>
+	<div class="expose-grid" style="--cols: {gridCols}" in:gridIn out:gridOut>
+		{#each centerImages as image (image.id)}
+			<div animate:flip={{ duration: 400, easing: (t) => 1 - Math.pow(1 - t, 3) }}>
+				<div
+					class="thumbnail"
+					class:focused={image.id === store.focusedImageId}
+					class:dragging={isDragged(image.id)}
+					use:draggable={{ store, imageId: image.id, onclick: () => store.setFocusedImage(image.id) }}
+					out:thumbnailOut
 				>
-					&times;
-				</button>
+					<img src={image.src} alt={image.alt} draggable="false" />
+					<button
+						class="close-btn"
+						onclick={(e) => onCloseClick(e, image.id)}
+						aria-label="Remove from center"
+					>
+						&times;
+					</button>
+				</div>
 			</div>
 		{/each}
 	</div>
@@ -105,7 +135,10 @@
 		cursor: pointer;
 		background: #fff;
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-		transition: transform 0.2s ease, box-shadow 0.2s ease;
+		transition:
+			transform 0.2s ease,
+			box-shadow 0.2s ease,
+			opacity 0.2s ease;
 	}
 
 	.thumbnail:hover {

@@ -10,7 +10,39 @@
 		focusedImage && store.dragState.active && store.dragState.imageId === focusedImage.id
 	);
 
+	// Track if we're returning from expose (subtle) vs first entry (bigger)
+	let wasExposeActive = false;
+	let fromExpose = $state(false);
+
+	$effect(() => {
+		const active = store.exposeActive;
+		if (wasExposeActive && !active) {
+			fromExpose = true;
+		}
+		wasExposeActive = active;
+	});
+
+	// Reset fromExpose after the transition would have played
+	$effect(() => {
+		if (fromExpose) {
+			const timer = setTimeout(() => {
+				fromExpose = false;
+			}, 500);
+			return () => clearTimeout(timer);
+		}
+	});
+
 	function focusIn(_node: Element): TransitionConfig {
+		if (fromExpose) {
+			return {
+				duration: 350,
+				css: (t) => {
+					const ease = 1 - Math.pow(1 - t, 3);
+					const scale = 0.96 + 0.04 * ease;
+					return `transform: scale(${scale})`;
+				}
+			};
+		}
 		return {
 			duration: 500,
 			css: (t) => {
@@ -23,7 +55,7 @@
 
 	function focusOut(_node: Element): TransitionConfig {
 		return {
-			duration: 300,
+			duration: 250,
 			css: (t) => {
 				const ease = Math.pow(t, 3);
 				const scale = 0.5 + 0.5 * ease;
@@ -70,7 +102,6 @@
 		cursor: grabbing;
 		pointer-events: none;
 	}
-
 
 	.focus-view img {
 		max-width: 100%;
