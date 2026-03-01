@@ -53,4 +53,17 @@
 		object-fit: cover;
 		pointer-events: none;
 	}
+
+	@media (max-width: 767px) {
+		.app-icon {
+			width: 52px;
+			height: 52px;
+		}
+	}
+
+	@media (hover: none) {
+		.app-icon:hover {
+			transform: none;
+		}
+	}
 </style>

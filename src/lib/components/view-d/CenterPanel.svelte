@@ -169,4 +169,28 @@
 	.center-panel:hover .resize-handle::after {
 		border-color: rgba(0, 0, 0, 0.3);
 	}
+
+	@media (pointer: coarse) {
+		.resize-handle {
+			width: 32px;
+			height: 32px;
+		}
+
+		.resize-handle::after {
+			width: 12px;
+			height: 12px;
+			bottom: 4px;
+			right: 4px;
+		}
+	}
+
+	@media (hover: none) {
+		.center-panel:hover {
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+		}
+
+		.center-panel:hover .resize-handle::after {
+			border-color: rgba(0, 0, 0, 0.15);
+		}
+	}
 </style>

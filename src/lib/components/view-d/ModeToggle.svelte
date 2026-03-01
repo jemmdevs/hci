@@ -4,6 +4,7 @@
 	let { store }: { store: ImageStore } = $props();
 
 	let visible = $derived(store.centerImages.length > 0 && !store.exposeActive);
+	let canExpose = $derived(store.centerMode === 'focus' && store.centerImages.length > 0);
 </script>
 
 {#if visible}
@@ -22,6 +23,20 @@
 		>
 			Free
 		</button>
+		{#if canExpose}
+			<button
+				class="toggle-btn expose-btn"
+				onclick={() => store.openExpose()}
+				aria-label="Show all images"
+			>
+				<svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+					<rect x="0.5" y="0.5" width="5" height="5" rx="1" fill="currentColor" />
+					<rect x="8.5" y="0.5" width="5" height="5" rx="1" fill="currentColor" />
+					<rect x="0.5" y="8.5" width="5" height="5" rx="1" fill="currentColor" />
+					<rect x="8.5" y="8.5" width="5" height="5" rx="1" fill="currentColor" />
+				</svg>
+			</button>
+		{/if}
 	</div>
 {/if}
 
@@ -58,5 +73,22 @@
 
 	.toggle-btn:hover:not(.active) {
 		color: rgba(0, 0, 0, 0.7);
+	}
+
+	.expose-btn {
+		display: none;
+		padding: 4px 8px;
+	}
+
+	.expose-btn svg {
+		display: block;
+	}
+
+	@media (hover: none) {
+		.expose-btn {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
 	}
 </style>

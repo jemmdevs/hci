@@ -49,4 +49,15 @@
 		overflow-y: auto;
 		overflow-x: hidden;
 	}
+
+	@media (max-width: 767px) {
+		.sidebar {
+			flex-direction: row;
+			height: 100%;
+			overflow-x: auto;
+			overflow-y: hidden;
+			gap: 12px;
+			justify-content: center;
+		}
+	}
 </style>

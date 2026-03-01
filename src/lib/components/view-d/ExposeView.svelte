@@ -10,11 +10,22 @@
 	let gridEl: HTMLElement | undefined = $state();
 	let localTargetIndex: number | null = $state(null);
 
+	let isMobile = $state(false);
+
+	$effect(() => {
+		const mq = window.matchMedia('(max-width: 767px)');
+		isMobile = mq.matches;
+		const handler = (e: MediaQueryListEvent) => { isMobile = e.matches; };
+		mq.addEventListener('change', handler);
+		return () => mq.removeEventListener('change', handler);
+	});
+
 	let gridCols = $derived.by(() => {
 		const count = centerImages.length;
+		const maxCols = isMobile ? 2 : 3;
 		if (count <= 1) return 1;
-		if (count <= 4) return 2;
-		return 3;
+		if (count <= 4) return Math.min(2, maxCols);
+		return maxCols;
 	});
 
 	let displayImages = $derived.by(() => {
@@ -242,5 +253,29 @@
 
 	.close-btn:hover {
 		background: rgba(0, 0, 0, 0.7);
+	}
+
+	@media (max-width: 767px) {
+		.expose-backdrop {
+			padding: 20px;
+		}
+
+		.expose-grid {
+			gap: 12px;
+		}
+	}
+
+	@media (hover: none) {
+		.close-btn {
+			opacity: 1;
+			width: 28px;
+			height: 28px;
+			font-size: 18px;
+		}
+
+		.thumbnail:hover {
+			transform: none;
+			box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+		}
 	}
 </style>

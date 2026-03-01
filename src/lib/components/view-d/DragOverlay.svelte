@@ -55,4 +55,11 @@
 		height: 100%;
 		object-fit: cover;
 	}
+
+	@media (max-width: 767px) {
+		.drag-overlay {
+			max-width: 120px;
+			max-height: 90px;
+		}
+	}
 </style>

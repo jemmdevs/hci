@@ -272,7 +272,7 @@ export class ImageStore {
 		} else if (
 			hoveredZone === 'left-sidebar' || hoveredZone === 'right-sidebar'
 		) {
-			const targetIndex = this.getSidebarTargetIndex(hoveredZone, pointerY);
+			const targetIndex = this.getSidebarTargetIndex(hoveredZone, pointerX, pointerY);
 			this.reorderInSidebar(imageId, hoveredZone, targetIndex);
 		}
 
@@ -331,19 +331,24 @@ export class ImageStore {
 		}
 	}
 
-	getSidebarTargetIndex(zone: 'left-sidebar' | 'right-sidebar', pointerY: number): number {
+	getSidebarTargetIndex(zone: 'left-sidebar' | 'right-sidebar', pointerX: number, pointerY: number): number {
 		if (!this.zoneRects) return 0;
 		const rect = this.zoneRects[zone];
 		const sidebarImages = zone === 'left-sidebar' ? this.leftSidebarImages : this.rightSidebarImages;
 		const count = sidebarImages.length;
 		if (count === 0) return 0;
 
-		const relY = pointerY - rect.y;
+		// Detect horizontal vs vertical sidebar from aspect ratio
+		const isHorizontal = rect.width > rect.height;
+
+		const rel = isHorizontal ? pointerX - rect.x : pointerY - rect.y;
+		const extent = isHorizontal ? rect.width : rect.height;
+
 		let closest = 0;
 		let closestDist = Infinity;
 		for (let i = 0; i < count; i++) {
-			const itemCenterY = ((i + 1) / (count + 1)) * rect.height;
-			const dist = Math.abs(relY - itemCenterY);
+			const itemCenter = ((i + 1) / (count + 1)) * extent;
+			const dist = Math.abs(rel - itemCenter);
 			if (dist < closestDist) {
 				closestDist = dist;
 				closest = i;
