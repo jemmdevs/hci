@@ -16,6 +16,7 @@ export class ImageStore {
 	centerMode: CenterMode = $state('focus');
 	focusedImageId: string | null = $state(null);
 	exposeActive: boolean = $state(false);
+	exposeDropTargetIndex: number | null = $state(null);
 
 	private nextZIndex = 1;
 
@@ -94,6 +95,29 @@ export class ImageStore {
 		if (this.centerImages.length <= 1) {
 			this.exposeActive = false;
 		}
+	}
+
+	reorderCenterImages(imageId: string, targetIndex: number) {
+		const sorted = this.centerImages.slice();
+		const currentIndex = sorted.findIndex((img) => img.id === imageId);
+		if (currentIndex === -1 || currentIndex === targetIndex) return;
+
+		const [moved] = sorted.splice(currentIndex, 1);
+		sorted.splice(targetIndex, 0, moved);
+
+		for (let i = 0; i < sorted.length; i++) {
+			const idx = this.images.findIndex((img) => img.id === sorted[i].id);
+			if (idx !== -1 && this.images[idx].centerPosition) {
+				this.images[idx] = {
+					...this.images[idx],
+					centerPosition: {
+						...this.images[idx].centerPosition!,
+						zIndex: i + 1
+					}
+				};
+			}
+		}
+		this.nextZIndex = sorted.length + 1;
 	}
 
 	moveToZone(imageId: string, targetZone: ZoneId, centerX?: number, centerY?: number) {
@@ -230,7 +254,10 @@ export class ImageStore {
 			: this.dragState.hoveredZone;
 
 		if (hoveredZone === 'center') {
-			if (sourceZone === 'center') {
+			if (sourceZone === 'center' && this.exposeActive && this.exposeDropTargetIndex !== null) {
+				this.reorderCenterImages(imageId, this.exposeDropTargetIndex);
+				this.exposeDropTargetIndex = null;
+			} else if (sourceZone === 'center') {
 				const rel = this.toCenterRelative(pointerX - offsetX, pointerY - offsetY);
 				this.updateCenterPosition(imageId, { x: rel.x, y: rel.y });
 			} else {
@@ -254,6 +281,7 @@ export class ImageStore {
 
 	cancelDrag() {
 		this.dragState = { ...defaultDragState };
+		this.exposeDropTargetIndex = null;
 	}
 
 	clampCenterPanels() {

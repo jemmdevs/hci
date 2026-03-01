@@ -7,12 +7,65 @@
 	let { store }: { store: ImageStore } = $props();
 
 	let centerImages = $derived(store.centerImages);
+	let gridEl: HTMLElement | undefined = $state();
+	let localTargetIndex: number | null = $state(null);
 
 	let gridCols = $derived.by(() => {
 		const count = centerImages.length;
 		if (count <= 1) return 1;
 		if (count <= 4) return 2;
 		return 3;
+	});
+
+	let displayImages = $derived.by(() => {
+		const images = centerImages;
+		if (localTargetIndex === null) return images;
+
+		const dragId = store.dragState.imageId;
+		const currentIdx = images.findIndex((img) => img.id === dragId);
+		if (currentIdx === -1 || currentIdx === localTargetIndex) return images;
+
+		const result = images.slice();
+		const [moved] = result.splice(currentIdx, 1);
+		result.splice(localTargetIndex, 0, moved);
+		return result;
+	});
+
+	$effect(() => {
+		const active = store.dragState.active;
+		const sourceZone = store.dragState.sourceZone;
+
+		if (!active || sourceZone !== 'center' || !gridEl) {
+			localTargetIndex = null;
+			store.exposeDropTargetIndex = null;
+			return;
+		}
+
+		const hoveredZone = store.dragState.hoveredZone;
+		if (hoveredZone !== 'center') {
+			localTargetIndex = null;
+			store.exposeDropTargetIndex = null;
+			return;
+		}
+
+		const px = store.dragState.pointerX;
+		const py = store.dragState.pointerY;
+		const gridRect = gridEl.getBoundingClientRect();
+		const cols = gridCols;
+		const count = centerImages.length;
+		const gap = 20;
+		const cellWidth = (gridRect.width - gap * (cols - 1)) / cols;
+		const cellHeight = cellWidth * 0.75;
+
+		const relX = px - gridRect.left;
+		const relY = py - gridRect.top;
+
+		const col = Math.max(0, Math.min(Math.floor((relX + gap / 2) / (cellWidth + gap)), cols - 1));
+		const row = Math.max(0, Math.floor((relY + gap / 2) / (cellHeight + gap)));
+
+		const idx = Math.max(0, Math.min(row * cols + col, count - 1));
+		localTargetIndex = idx;
+		store.exposeDropTargetIndex = idx;
 	});
 
 	function exposeIn(_node: Element): TransitionConfig {
@@ -83,8 +136,8 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="expose-backdrop" in:exposeIn out:exposeOut onclick={onBackdropClick}>
-	<div class="expose-grid" style="--cols: {gridCols}" in:gridIn out:gridOut>
-		{#each centerImages as image (image.id)}
+	<div class="expose-grid" style="--cols: {gridCols}" in:gridIn out:gridOut bind:this={gridEl}>
+		{#each displayImages as image (image.id)}
 			<div animate:flip={{ duration: 400, easing: (t) => 1 - Math.pow(1 - t, 3) }}>
 				<div
 					class="thumbnail"
