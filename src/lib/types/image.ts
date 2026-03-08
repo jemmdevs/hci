@@ -13,6 +13,7 @@ export interface CenterPosition {
 export interface ImageItem {
 	id: string;
 	src: string;
+	thumb: string;
 	alt: string;
 	zone: ZoneId;
 	sidebarIndex: number;

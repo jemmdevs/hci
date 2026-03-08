@@ -67,6 +67,7 @@
 		resizeStartW = pos.width;
 		resizeStartH = pos.height;
 		store.bringToFront(image.id);
+		document.body.style.cursor = 'nwse-resize';
 
 		window.addEventListener('pointermove', onResizePointerMove);
 		window.addEventListener('pointerup', onResizePointerUp);
@@ -85,6 +86,7 @@
 	function onResizePointerUp() {
 		if (!resizing) return;
 		resizing = false;
+		document.body.style.cursor = '';
 		window.removeEventListener('pointermove', onResizePointerMove);
 		window.removeEventListener('pointerup', onResizePointerUp);
 	}
@@ -102,7 +104,7 @@
 >
 	<img src={image.src} alt={image.alt} draggable="false" />
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="resize-handle" onpointerdown={onResizePointerDown}></div>
+	<div class="resize-handle" data-no-drag onpointerdown={onResizePointerDown}></div>
 </div>
 
 <style>
@@ -135,7 +137,9 @@
 	}
 
 	.center-panel.resizing {
-		transition: none;
+		box-shadow:
+			0 0 0 2px rgba(0, 122, 255, 0.3),
+			0 4px 20px rgba(0, 0, 0, 0.12);
 	}
 
 	.center-panel img {
@@ -149,8 +153,8 @@
 		position: absolute;
 		bottom: 0;
 		right: 0;
-		width: 16px;
-		height: 16px;
+		width: 24px;
+		height: 24px;
 		cursor: nwse-resize;
 		touch-action: none;
 	}
@@ -158,29 +162,59 @@
 	.resize-handle::after {
 		content: '';
 		position: absolute;
-		bottom: 3px;
-		right: 3px;
-		width: 8px;
-		height: 8px;
-		border-right: 2px solid rgba(0, 0, 0, 0.15);
-		border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+		bottom: 4px;
+		right: 4px;
+		width: 12px;
+		height: 12px;
+		opacity: 0;
+		transition: opacity 0.2s ease;
+		clip-path: polygon(100% 0%, 100% 100%, 0% 100%);
+		background: repeating-linear-gradient(
+			135deg,
+			transparent 0px,
+			transparent 3px,
+			rgba(0, 0, 0, 0.25) 3px,
+			rgba(0, 0, 0, 0.25) 4px
+		);
 	}
 
 	.center-panel:hover .resize-handle::after {
-		border-color: rgba(0, 0, 0, 0.3);
+		opacity: 1;
+	}
+
+	.resize-handle:hover::after {
+		background: repeating-linear-gradient(
+			135deg,
+			transparent 0px,
+			transparent 3px,
+			rgba(0, 0, 0, 0.4) 3px,
+			rgba(0, 0, 0, 0.4) 4px
+		);
+	}
+
+	.center-panel.resizing .resize-handle::after {
+		opacity: 1;
+		background: repeating-linear-gradient(
+			135deg,
+			transparent 0px,
+			transparent 3px,
+			rgba(0, 122, 255, 0.5) 3px,
+			rgba(0, 122, 255, 0.5) 4px
+		);
 	}
 
 	@media (pointer: coarse) {
 		.resize-handle {
-			width: 32px;
-			height: 32px;
+			width: 40px;
+			height: 40px;
 		}
 
 		.resize-handle::after {
-			width: 12px;
-			height: 12px;
-			bottom: 4px;
-			right: 4px;
+			width: 14px;
+			height: 14px;
+			bottom: 5px;
+			right: 5px;
+			opacity: 0.6;
 		}
 	}
 
@@ -189,8 +223,8 @@
 			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
 		}
 
-		.center-panel:hover .resize-handle::after {
-			border-color: rgba(0, 0, 0, 0.15);
+		.resize-handle::after {
+			opacity: 0.6;
 		}
 	}
 </style>

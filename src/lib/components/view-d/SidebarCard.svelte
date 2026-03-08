@@ -15,7 +15,7 @@
 	role="img"
 	aria-label={image.alt}
 >
-	<img src={image.src} alt={image.alt} draggable="false" />
+	<img src={image.thumb} alt={image.alt} draggable="false" />
 </div>
 
 <style>

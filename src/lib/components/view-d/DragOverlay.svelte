@@ -28,7 +28,7 @@
 			border-radius: {radius}px;
 		"
 	>
-		<img src={image.src} alt={image.alt} draggable="false" />
+		<img src={isOverSidebar ? image.thumb : image.src} alt={image.alt} draggable="false" />
 	</div>
 {/if}
 
