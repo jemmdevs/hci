@@ -199,6 +199,8 @@
 		cursor: pointer;
 		background: #fff;
 		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+		touch-action: none;
+		user-select: none;
 		transition:
 			transform 0.2s ease,
 			box-shadow 0.2s ease,

@@ -50,7 +50,7 @@
 		};
 	}
 
-	// Edge detection
+	// --- Edge detection (desktop / fine pointer) ---
 	type Edge = 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw' | null;
 	let hoveredEdge: Edge = $state(null);
 	let isHovered = $state(false);
@@ -90,97 +90,142 @@
 	}
 
 	function onPanelPointerMove(e: PointerEvent) {
-		if (resizing || !panelEl) return;
+		if (resizing || pinching || !panelEl) return;
 		hoveredEdge = detectEdge(e.clientX, e.clientY, panelEl);
 	}
 
 	function onPanelPointerLeave() {
-		if (!resizing) {
+		if (!resizing && !pinching) {
 			hoveredEdge = null;
 			isHovered = false;
 		}
 	}
 
-	// Dynamic box-shadow: controlled fully in JS for smooth transitions
+	// Dynamic box-shadow — fully JS-driven for smooth glow transitions
 	let panelShadow = $derived.by(() => {
-		const shadows: string[] = [];
-
-		const baseShadow = isHovered
-			? '0 6px 28px rgba(0,0,0,0.16)'
-			: '0 4px 20px rgba(0,0,0,0.12)';
-		shadows.push(baseShadow);
-
-		if (hoveredEdge) {
-			const c = 'rgba(0, 122, 255, 0.55)';
-			if (hoveredEdge.includes('n')) shadows.push(`inset 0 2px 0 0 ${c}`);
-			if (hoveredEdge.includes('s')) shadows.push(`inset 0 -2px 0 0 ${c}`);
-			if (hoveredEdge.includes('e')) shadows.push(`inset -2px 0 0 0 ${c}`);
-			if (hoveredEdge.includes('w')) shadows.push(`inset 2px 0 0 0 ${c}`);
-		}
-
-		return shadows.join(', ');
+		const base = isHovered ? '0 6px 28px rgba(0,0,0,0.16)' : '0 4px 20px rgba(0,0,0,0.12)';
+		if (!hoveredEdge) return base;
+		const c = 'rgba(0, 122, 255, 0.55)';
+		const parts = [base];
+		if (hoveredEdge.includes('n')) parts.push(`inset 0 2px 0 0 ${c}`);
+		if (hoveredEdge.includes('s')) parts.push(`inset 0 -2px 0 0 ${c}`);
+		if (hoveredEdge.includes('e')) parts.push(`inset -2px 0 0 0 ${c}`);
+		if (hoveredEdge.includes('w')) parts.push(`inset 2px 0 0 0 ${c}`);
+		return parts.join(', ');
 	});
 
 	let panelStyle = $derived(
-		`transform: translate(${visualX}px, ${visualY}px); width: ${pos.width}px; height: ${pos.height}px; z-index: ${pos.zIndex}; cursor: ${edgeCursor(hoveredEdge)}; box-shadow: ${panelShadow};`
+		`transform: translate(${visualX}px, ${visualY}px); ` +
+		`width: ${pos.width}px; height: ${pos.height}px; ` +
+		`z-index: ${pos.zIndex}; cursor: ${edgeCursor(hoveredEdge)}; ` +
+		`box-shadow: ${panelShadow};`
 	);
 
-	// Edge resize
+	// --- Edge resize (desktop) ---
 	let resizing = $state(false);
 	let resizeEdge: Edge = null;
 	let resizeStart = { x: 0, y: 0 };
 	let resizeInitial = { x: 0, y: 0, width: 0, height: 0 };
 
+	// --- Pinch to resize (mobile / touch) ---
+	const activePointers = new Map<number, { x: number; y: number }>();
+	let pinching = $state(false);
+	let pinchStartDist = 0;
+	let pinchInitial = { x: 0, y: 0, width: 0, height: 0 };
+
+	function getPinchDist(): number {
+		const pts = [...activePointers.values()];
+		if (pts.length < 2) return 0;
+		return Math.hypot(pts[1].x - pts[0].x, pts[1].y - pts[0].y);
+	}
+
+	// Unified pointer down — handles edge resize (desktop) and pinch tracking (mobile)
 	function onPanelPointerDown(e: PointerEvent) {
-		if (!hoveredEdge) return;
-		e.preventDefault();
-		e.stopPropagation();
-		store.bringToFront(image.id);
-		resizing = true;
-		resizeEdge = hoveredEdge;
-		resizeStart = { x: e.clientX, y: e.clientY };
-		resizeInitial = { x: pos.x, y: pos.y, width: pos.width, height: pos.height };
-		document.body.style.cursor = edgeCursor(resizeEdge);
-		window.addEventListener('pointermove', onResizeMove);
-		window.addEventListener('pointerup', onResizeUp);
+		// Track pointer for pinch
+		activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+		// Second finger → start pinch, cancel any active drag
+		if (activePointers.size >= 2 && !pinching) {
+			pinching = true;
+			pinchStartDist = getPinchDist();
+			pinchInitial = { x: pos.x, y: pos.y, width: pos.width, height: pos.height };
+			store.cancelDrag();
+			store.bringToFront(image.id);
+			return;
+		}
+
+		// Edge resize — only when a specific edge is hovered (desktop)
+		if (hoveredEdge) {
+			e.preventDefault();
+			e.stopPropagation();
+			resizing = true;
+			resizeEdge = hoveredEdge;
+			resizeStart = { x: e.clientX, y: e.clientY };
+			resizeInitial = { x: pos.x, y: pos.y, width: pos.width, height: pos.height };
+			store.bringToFront(image.id);
+			document.body.style.cursor = edgeCursor(resizeEdge);
+		}
 	}
 
-	function onResizeMove(e: PointerEvent) {
-		if (!resizing || !resizeEdge) return;
-		e.preventDefault();
-		const dx = e.clientX - resizeStart.x;
-		const dy = e.clientY - resizeStart.y;
-		const { x, y, width, height } = resizeInitial;
-		let newX = x, newY = y, newW = width, newH = height;
+	// Global pointer move — handles edge resize and pinch
+	function onWindowPointerMove(e: PointerEvent) {
+		if (resizing && resizeEdge) {
+			e.preventDefault();
+			const dx = e.clientX - resizeStart.x;
+			const dy = e.clientY - resizeStart.y;
+			const { x, y, width, height } = resizeInitial;
+			let newX = x, newY = y, newW = width, newH = height;
 
-		if (resizeEdge.includes('e')) {
-			newW = Math.max(MIN_WIDTH, width + dx);
-		}
-		if (resizeEdge.includes('w')) {
-			newW = Math.max(MIN_WIDTH, width - dx);
-			newX = x + width - newW;
-		}
-		if (resizeEdge.includes('s')) {
-			newH = Math.max(MIN_HEIGHT, height + dy);
-		}
-		if (resizeEdge.includes('n')) {
-			newH = Math.max(MIN_HEIGHT, height - dy);
-			newY = y + height - newH;
+			if (resizeEdge.includes('e')) newW = Math.max(MIN_WIDTH, width + dx);
+			if (resizeEdge.includes('w')) { newW = Math.max(MIN_WIDTH, width - dx); newX = x + width - newW; }
+			if (resizeEdge.includes('s')) newH = Math.max(MIN_HEIGHT, height + dy);
+			if (resizeEdge.includes('n')) { newH = Math.max(MIN_HEIGHT, height - dy); newY = y + height - newH; }
+
+			store.updateCenterPosition(image.id, { x: newX, y: newY, width: newW, height: newH });
+			return;
 		}
 
-		store.updateCenterPosition(image.id, { x: newX, y: newY, width: newW, height: newH });
+		if (pinching && activePointers.has(e.pointerId)) {
+			activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+			if (activePointers.size < 2 || pinchStartDist === 0) return;
+
+			const factor = clamp(getPinchDist() / pinchStartDist, 0.3, 4);
+			const newW = Math.max(MIN_WIDTH, pinchInitial.width * factor);
+			const newH = Math.max(MIN_HEIGHT, pinchInitial.height * factor);
+			const cx = pinchInitial.x + pinchInitial.width / 2;
+			const cy = pinchInitial.y + pinchInitial.height / 2;
+
+			store.updateCenterPosition(image.id, {
+				x: cx - newW / 2,
+				y: cy - newH / 2,
+				width: newW,
+				height: newH
+			});
+		}
 	}
 
-	function onResizeUp() {
-		if (!resizing) return;
-		resizing = false;
-		resizeEdge = null;
-		document.body.style.cursor = '';
-		window.removeEventListener('pointermove', onResizeMove);
-		window.removeEventListener('pointerup', onResizeUp);
+	function onWindowPointerUp(e: PointerEvent) {
+		if (resizing) {
+			resizing = false;
+			resizeEdge = null;
+			document.body.style.cursor = '';
+		}
+		activePointers.delete(e.pointerId);
+		if (activePointers.size < 2) pinching = false;
 	}
 
-	// Scroll to resize (proportional, anchored from center)
+	// Register global listeners once for the lifetime of this panel
+	$effect(() => {
+		window.addEventListener('pointermove', onWindowPointerMove);
+		window.addEventListener('pointerup', onWindowPointerUp);
+		return () => {
+			window.removeEventListener('pointermove', onWindowPointerMove);
+			window.removeEventListener('pointerup', onWindowPointerUp);
+			document.body.style.cursor = '';
+		};
+	});
+
+	// --- Scroll to resize (desktop trackpad / mouse wheel) ---
 	function onPanelWheel(e: WheelEvent) {
 		e.preventDefault();
 		e.stopPropagation();
@@ -204,12 +249,13 @@
 	class="center-panel"
 	class:dragging={isDragged}
 	class:resizing
+	class:pinching
 	style={panelStyle}
 	bind:this={panelEl}
 	use:draggable={{
 		store,
 		imageId: image.id,
-		enabled: !resizing && !hoveredEdge,
+		enabled: !resizing && !hoveredEdge && !pinching,
 		onpointerdown: () => store.bringToFront(image.id)
 	}}
 	onpointerenter={onPanelPointerEnter}
@@ -246,16 +292,18 @@
 		pointer-events: none;
 	}
 
+	.center-panel.pinching {
+		/* Subtle scale feedback during pinch */
+		transition:
+			box-shadow 0.18s cubic-bezier(0.2, 0, 0, 1),
+			border-color 0.18s ease;
+		border-color: rgba(0, 122, 255, 0.3);
+	}
+
 	.center-panel img {
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
 		pointer-events: none;
-	}
-
-	@media (hover: none) {
-		.center-panel img {
-			pointer-events: none;
-		}
 	}
 </style>
