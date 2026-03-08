@@ -14,8 +14,23 @@
 	let overlayHeight = $derived(isOverSidebar ? 64 : 150);
 	let radius = $derived(isOverSidebar ? 14 : 12);
 
-	let tx = $derived(drag.pointerX - overlaySize / 2);
-	let ty = $derived(drag.pointerY - overlayHeight / 2);
+	// Clamp so the overlay never goes more than half its size past the center zone boundary.
+	// This prevents it from burying itself in the sidebar during drag.
+	let tx = $derived.by(() => {
+		const raw = drag.pointerX - overlaySize / 2;
+		const cx = store.centerRect;
+		if (!cx) return raw;
+		const half = overlaySize / 2;
+		return Math.max(cx.x - half, Math.min(raw, cx.x + cx.width - half));
+	});
+
+	let ty = $derived.by(() => {
+		const raw = drag.pointerY - overlayHeight / 2;
+		const cx = store.centerRect;
+		if (!cx) return raw;
+		const half = overlayHeight / 2;
+		return Math.max(cx.y - half, Math.min(raw, cx.y + cx.height - half));
+	});
 </script>
 
 {#if drag.active && image}

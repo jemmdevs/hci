@@ -64,6 +64,9 @@
 		width: 100%;
 		height: 100%;
 		overflow: hidden;
+		/* clip-path ensures GPU-composited children (will-change: transform) are
+		   also clipped — overflow: hidden alone can fail for compositing layers */
+		clip-path: inset(0);
 	}
 
 	.empty-hint {
