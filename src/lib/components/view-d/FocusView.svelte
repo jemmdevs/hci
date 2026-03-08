@@ -22,7 +22,6 @@
 		wasExposeActive = active;
 	});
 
-	// Reset fromExpose after the transition would have played
 	$effect(() => {
 		if (fromExpose) {
 			const timer = setTimeout(() => {
@@ -32,7 +31,25 @@
 		}
 	});
 
+	// Track sidebar clicks to drive {#key} transitions.
+	// Initialized at component mount — persists across {#key} remounts (same instance).
+	let prevSidebarKey = store.sidebarClickKey;
+
 	function focusIn(_node: Element): TransitionConfig {
+		const isSidebarClick = store.sidebarClickKey !== prevSidebarKey;
+		if (isSidebarClick) {
+			prevSidebarKey = store.sidebarClickKey;
+			// Elegant materialisation from the sidebar icon — subtle scale + opacity
+			return {
+				duration: 380,
+				css: (t) => {
+					const ease = 1 - Math.pow(1 - t, 3);
+					const scale = 0.92 + 0.08 * ease;
+					return `transform: scale(${scale}); opacity: ${ease}`;
+				}
+			};
+		}
+
 		if (fromExpose) {
 			return {
 				duration: 350,
@@ -43,6 +60,8 @@
 				}
 			};
 		}
+
+		// Default first entry
 		return {
 			duration: 500,
 			css: (t) => {
@@ -54,6 +73,15 @@
 	}
 
 	function focusOut(_node: Element): TransitionConfig {
+		// When focusedImage is still non-null, we're swapping (sidebar click replaced image).
+		// Use a quick cross-fade instead of the dramatic scale-down.
+		if (focusedImage !== null) {
+			return {
+				duration: 180,
+				css: (t) => `opacity: ${t}; transform: scale(${0.97 + 0.03 * t})`
+			};
+		}
+		// Genuine exit — image was dragged out or center cleared
 		return {
 			duration: 250,
 			css: (t) => {
@@ -66,15 +94,17 @@
 </script>
 
 {#if focusedImage}
-	<div
-		class="focus-view"
-		class:dragging={isDragged}
-		in:focusIn
-		out:focusOut
-		use:draggable={{ store, imageId: focusedImage.id }}
-	>
-		<img src={focusedImage.src} alt={focusedImage.alt} draggable="false" />
-	</div>
+	{#key store.sidebarClickKey}
+		<div
+			class="focus-view"
+			class:dragging={isDragged}
+			in:focusIn
+			out:focusOut
+			use:draggable={{ store, imageId: focusedImage.id }}
+		>
+			<img src={focusedImage.src} alt={focusedImage.alt} draggable="false" />
+		</div>
+	{/key}
 {/if}
 
 <style>

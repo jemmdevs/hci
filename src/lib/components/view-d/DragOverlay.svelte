@@ -14,10 +14,13 @@
 	let overlayHeight = $derived(isOverSidebar ? 64 : 150);
 	let radius = $derived(isOverSidebar ? 14 : 12);
 
-	// Clamp so the overlay never goes more than half its size past the center zone boundary.
-	// This prevents it from burying itself in the sidebar during drag.
+	// When over center: clamp so the large overlay doesn't bury more than half into the sidebar.
+	// When over sidebar: small 64px thumbnail — follow cursor freely into the sidebar.
 	let tx = $derived.by(() => {
 		const raw = drag.pointerX - overlaySize / 2;
+		if (isOverSidebar) {
+			return Math.max(0, Math.min(raw, window.innerWidth - overlaySize));
+		}
 		const cx = store.centerRect;
 		if (!cx) return raw;
 		const half = overlaySize / 2;

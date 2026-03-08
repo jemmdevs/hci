@@ -56,8 +56,7 @@
 			height: 100%;
 			overflow-x: auto;
 			overflow-y: hidden;
-			gap: 12px;
-			justify-content: center;
+			justify-content: space-evenly;
 		}
 	}
 </style>

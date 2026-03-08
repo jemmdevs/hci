@@ -17,6 +17,7 @@ export class ImageStore {
 	focusedImageId: string | null = $state(null);
 	exposeActive: boolean = $state(false);
 	exposeDropTargetIndex: number | null = $state(null);
+	sidebarClickKey: number = $state(0);
 
 	private nextZIndex = 1;
 
@@ -73,6 +74,11 @@ export class ImageStore {
 	setFocusedImage(id: string | null) {
 		this.focusedImageId = id;
 		this.exposeActive = false;
+	}
+
+	openFromSidebar(imageId: string) {
+		this.sidebarClickKey++;
+		this.moveToZone(imageId, 'center');
 	}
 
 	openExpose() {

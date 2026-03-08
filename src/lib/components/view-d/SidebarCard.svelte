@@ -11,7 +11,7 @@
 <div
 	class="app-icon"
 	class:dragging={isDragged}
-	use:draggable={{ store, imageId: image.id }}
+	use:draggable={{ store, imageId: image.id, onclick: () => store.openFromSidebar(image.id) }}
 	role="img"
 	aria-label={image.alt}
 >
